@@ -6,7 +6,8 @@
     pip -V
 ### Answer: 25.3
 
-# Q2
+## Q2 
+Given the docker-compose.yaml, what is the hostname and port that pgadmin should use to connect to the postgres database?
 ### Answer: postgres:5432 or db:5432
 
 
@@ -17,10 +18,10 @@
     from public.green_taxi_trips_2025_11 g
     where g.trip_distance <= 1
     and g.lpep_pickup_datetime between '2025-11-01' and '2025-12-01';
-###  Answer    8,007
+###  Answer:    8,007
 
 
-## Q 4. Longest trip for each day
+## Q4 Longest trip for each day
 -- Which was the pick up day with the longest trip distance? Only consider trips with trip_distance less than 100 miles (to exclude data errors).
 -- Use the pick up time for your calculations.
 
@@ -28,10 +29,10 @@
     from public.green_taxi_trips_2025_11 g
     where trip_distance < 100
     order by trip_distance desc limit 1;
-### Answer    2025-11-14
+### Answer:    2025-11-14
 
 
-## Question 5. Biggest pickup zone
+## Q5 Biggest pickup zone
 -- Which was the pickup zone with the largest total_amount (sum of all trips) on November 18th, 2025?
 
     select start_zone."Zone", sum(total_amount)
@@ -41,10 +42,10 @@
     group by start_zone."Zone"
     order by 2 desc
     limit 1;
-### Answer     East Harlem North
+### Answer:     East Harlem North
 
 
-## Question 6. Largest tip
+## Q6 Largest tip
 For the passengers picked up in the zone named "East Harlem North" in November 2025, which was the drop off zone that had the largest tip?
 Note: it's tip , not trip. We need the name of the zone, not the ID.
     
@@ -55,4 +56,14 @@ Note: it's tip , not trip. We need the name of the zone, not the ID.
     where lpep_pickup_datetime between '2025-11-01' and '2025-12-01'
     order by g.tip_amount desc
     limit 1;   
-### Answer    Yorkville West
+### Answer:    Yorkville West
+
+## Q7 
+
+Which of the following sequences, respectively, describes the workflow for:
+
++ Downloading the provider plugins and setting up backend,
++ Generating proposed changes and auto-executing the plan
++ Remove all resources managed by terraform`
+
+### Answer:  terraform init, terraform apply -auto-approve, terraform destroy

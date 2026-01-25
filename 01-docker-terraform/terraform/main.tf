@@ -12,8 +12,8 @@ provider "google" {
   region  = "europe-central2"
 }
 
-resource "google_storage_bucket" "auto-expire" {
-  name          = "auto-expiring-bucket"
+resource "google_storage_bucket" "demo-bucket" {
+  name          = "terraform-demo-485018-terra-bucket"
   location      = "eu"
   force_destroy = true
 

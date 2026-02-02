@@ -1,5 +1,3 @@
-
-
 volumes:
   ny_taxi_postgres_data:
     driver: local
@@ -18,7 +16,7 @@ services:
     volumes:
       - ny_taxi_postgres_data:/var/lib/postgresql
     ports:
-      - "5432:5432"
+      - "5433:5432" # Changed from 5432 to 5433
     depends_on:
       kestra:
         condition: service_started
@@ -28,10 +26,8 @@ services:
     environment:
       PGADMIN_DEFAULT_EMAIL: admin@admin.com
       PGADMIN_DEFAULT_PASSWORD: root
-    # volumes:
-    #   - pgadmin_data:/var/lib/pgadmin
     ports:
-      - "8085:80"
+      - "8086:80" # Changed from 8085 to 8086
     depends_on:
       pgdatabase:
         condition: service_started
@@ -53,9 +49,6 @@ services:
   kestra:
     image: kestra/kestra:latest
     pull_policy: always
-    # Note that this setup with a root user is intended for development purpose.
-    # Our base image runs without root, but the Docker Compose implementation needs root to access the Docker socket
-    # To run Kestra in a rootless mode in production, see: https://kestra.io/docs/installation/podman-compose
     user: "root"
     command: server standalone
     volumes:
@@ -73,7 +66,7 @@ services:
         kestra:
           server:
             basicAuth:
-              username: "admin@kestra.io" # it must be a valid email address
+              username: "admin@kestra.io"
               password: Admin1234!
           repository:
             type: postgres
@@ -86,28 +79,10 @@ services:
           tasks:
             tmpDir:
               path: /tmp/kestra-wd/tmp
-          url: http://localhost:8080/
+          url: http://localhost:8082/
     ports:
-      - "8080:8080"
-      - "8081:8081"
+      - "8082:8080" # Changed from 8080 to 8082
+      - "8083:8081" # Changed from 8081 to 8083
     depends_on:
       kestra_postgres:
         condition: service_healthy
-
-  # taxi_ingest:
-  #   image: taxi_ingest:v001
-  #   depends_on:
-  #     - pgdatabase
-  #   command: >
-  #     --pg-user=root
-  #     --pg-pass=root
-  #     --pg-host=pgdatabase
-  #     --pg-port=5432
-  #     --pg-db=ny_taxi
-  #     --target-table=yellow_taxi_trips_2021_1
-  #     --year=2021
-  #     --month=1
-  #     --chunksize=100000
-
-
-

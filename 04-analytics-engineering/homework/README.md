@@ -120,32 +120,33 @@ Create a staging model for the **For-Hire Vehicle (FHV)** trip data for 2019.
 2. Create a staging model `stg_fhv_tripdata` with these requirements:
    - Filter out records where `dispatching_base_num IS NULL`
    - Rename fields to match your project's naming conventions (e.g., `PUlocationID` → `pickup_location_id`)
+```
+with
+    source as (select * from {{ source("raw", "fhv_tripdata") }}),
 
-    with
-        source as (select * from {{ source("raw", "fhv_tripdata") }}),
+    renamed as (
+        select
+            -- identifiers (standardized naming for consistency across yellow/green)
+            cast(dispatching_base_num as string) as dispatching_base_num,
+            cast(affiliated_base_number as string) as affiliated_base_num,
+            cast(pulocationid as integer) as pickup_location_id,
+            cast(dolocationid as integer) as dropoff_location_id,
 
-        renamed as (
-            select
-                -- identifiers (standardized naming for consistency across yellow/green)
-                cast(dispatching_base_num as string) as dispatching_base_num,
-                cast(affiliated_base_number as string) as affiliated_base_num,
-                cast(pulocationid as integer) as pickup_location_id,
-                cast(dolocationid as integer) as dropoff_location_id,
+            -- timestamps (standardized naming)
+            cast(pickup_datetime as timestamp) as pickup_datetime,
+            cast(dropoff_datetime as timestamp) as dropoff_datetime,
 
-                -- timestamps (standardized naming)
-                cast(pickup_datetime as timestamp) as pickup_datetime,
-                cast(dropoff_datetime as timestamp) as dropoff_datetime,
-
-                -- trip info
-                cast(sr_flag as string) as shared_ride_flag,
+            -- trip info
+            cast(sr_flag as string) as shared_ride_flag,
 
 
-            from source
-            where dispatching_base_num is not null
-        )
+        from source
+        where dispatching_base_num is not null
+    )
 
-    select count(*)
-    from renamed;
+select count(*)
+from renamed;
+```
 
 What is the count of records in `stg_fhv_tripdata`?
 

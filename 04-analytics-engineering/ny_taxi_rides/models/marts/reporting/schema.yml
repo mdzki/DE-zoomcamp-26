@@ -23,7 +23,7 @@ models:
           - not_null
           - accepted_values:
               arguments:
-                values: ['Green', 'Yellow']
+                values: ["Green", "Yellow"]
       - name: revenue_monthly_total_amount
         description: Monthly sum of total fares
         data_tests:

@@ -6,7 +6,7 @@ In this homework, we'll use the dbt project in `04-analytics-engineering/taxi_ri
 
 1. Set up your dbt project following the [setup guide](../../../04-analytics-engineering/setup/)
 2. Load the Green and Yellow taxi data for 2019-2020 into your warehouse
-3. Run `dbt build --target prod` to create all models and run tests
+3. Run `dbt build --target prod` to create all models and run tests - *only applying to local setup
 
 > **Note:** By default, dbt uses the `dev` target. You must use `--target prod` to build the models in the production dataset, which is required for the homework queries below.
 
@@ -29,10 +29,10 @@ models/
 
 If you run `dbt run --select int_trips_unioned`, what models will be built?
 
-- `stg_green_tripdata`, `stg_yellow_tripdata`, and `int_trips_unioned` (upstream dependencies)
-- Any model with upstream and downstream dependencies to `int_trips_unioned`
-- `int_trips_unioned` only
-- `int_trips_unioned`, `int_trips`, and `fct_trips` (downstream dependencies)
+- ~~`stg_green_tripdata`, `stg_yellow_tripdata`, and `int_trips_unioned` (upstream dependencies)~~
+- ~~Any model with upstream and downstream dependencies to `int_trips_unioned`~~
+- __`int_trips_unioned` only__
+- ~~`int_trips_unioned`, `int_trips`, and `fct_trips` (downstream dependencies)~~
 
 ---
 
@@ -54,10 +54,10 @@ Your model `fct_trips` has been running successfully for months. A new value `6`
 
 What happens when you run `dbt test --select fct_trips`?
 
-- dbt will skip the test because the model didn't change
-- dbt will fail the test, returning a non-zero exit code
-- dbt will pass the test with a warning about the new value
-- dbt will update the configuration to include the new value
+- ~~dbt will skip the test because the model didn't change~~
+- __dbt will fail the test, returning a non-zero exit code__
+- ~~dbt will pass the test with a warning about the new value~~
+- ~~dbt will update the configuration to include the new value~~
 
 ---
 
@@ -67,10 +67,13 @@ After running your dbt project, query the `fct_monthly_zone_revenue` model.
 
 What is the count of records in the `fct_monthly_zone_revenue` model?
 
-- 12,998
-- 14,120
-- 12,184
-- 15,421
+    SELECT count(*) 
+    FROM `de-zoomcamp-ny-taxi-486814.dbt_dev.fct_monthly_zone_revenue`;
+
+- ~~12,998~~
+- ~~14,120~~
+- __12,184__
+- ~~15,421~~
 
 ---
 
@@ -80,10 +83,17 @@ Using the `fct_monthly_zone_revenue` table, find the pickup zone with the **high
 
 Which zone had the highest revenue?
 
-- East Harlem North
-- Morningside Heights
-- East Harlem South
-- Washington Heights South
+    SELECT pickup_zone, sum(revenue_monthly_total_amount)
+    FROM `de-zoomcamp-ny-taxi-486814.dbt_dev.fct_monthly_zone_revenue`
+    where service_type = 'Green' and extract(year FROM revenue_month) = 2020
+    group by pickup_zone
+    order by sum(revenue_monthly_total_amount) desc
+    limit 1;
+
+- __East Harlem North__
+- ~~Morningside Heights~~
+- ~~East Harlem South~~
+- ~~Washington Heights South~~
 
 ---
 
@@ -91,10 +101,14 @@ Which zone had the highest revenue?
 
 Using the `fct_monthly_zone_revenue` table, what is the **total number of trips** (`total_monthly_trips`) for Green taxis in October 2019?
 
-- 500,234
-- 350,891
-- 384,624
-- 421,509
+    SELECT sum(total_monthly_trips)
+    FROM `de-zoomcamp-ny-taxi-486814.dbt_dev.fct_monthly_zone_revenue`
+    where service_type = 'Green' and revenue_month = '2019-10-01';
+
+- ~~500,234~~
+- ~~350,891~~
+- __384,624__
+- ~~421,509~~
 
 ---
 

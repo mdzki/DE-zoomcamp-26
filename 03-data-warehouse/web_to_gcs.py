@@ -22,9 +22,7 @@ INIT_URL = "https://github.com/DataTalksClub/nyc-tlc-data/releases/download/"
 TEMP_DIR = Path("temp_data")
 TEMP_DIR.mkdir(exist_ok=True)
 
-
 def timed_operation(operation_name: str) -> callable:
-    """Decorator to measure execution time of operations."""
     def decorator(func: callable) -> callable:
         def wrapper(*args, **kwargs):
             start = time.perf_counter()
@@ -37,67 +35,57 @@ def timed_operation(operation_name: str) -> callable:
     return decorator
 
 def list_gcs_files(prefix=None):
-    """Lists all files in the GCS bucket. Optional prefix filters by 'folder'."""
-    bucket_name = os.getenv("GCP_GCS_BUCKET", 'mdzki-ny-taxi-bucket')
     client = storage.Client()
-    bucket = client.bucket(bucket_name)
-
-    # list_blobs returns an iterator
+    bucket = client.bucket(BUCKET)
     blobs = bucket.list_blobs(prefix=prefix)
-
-    file_list = []
-    for blob in blobs:
-        file_list.append(blob.name)
-    return file_list
+    return [blob.name for blob in blobs]
 
 @timed_operation("Download file from web")
 def download_file(url: str, local_path: Path) -> Path:
-    """Download file from URL to local path."""
     response = requests.get(url, stream=True)
     response.raise_for_status()
-    
     local_path.parent.mkdir(parents=True, exist_ok=True)
     with open(local_path, "wb") as f:
         f.write(response.content)
-    
     return local_path
-
 
 @timed_operation("Transform CSV to Parquet")
 def transform_to_parquet(csv_path: Path, parquet_path: Path) -> Path:
-    """Read gzipped CSV with Polars and save as Parquet."""
-    df = pl.read_csv(csv_path, infer_schema_length=20000)
+    # We use infer_schema_length to handle the messy taxi data types
+    df = pl.read_csv(csv_path, infer_schema_length=100000)
     df.write_parquet(parquet_path)
     return parquet_path
 
-
 @timed_operation("Upload to GCS")
 def upload_to_gcs(local_file: Path, bucket_name: str, object_name: str) -> None:
-    """Upload file to Google Cloud Storage."""
     client = storage.Client()
     bucket = client.bucket(bucket_name)
     blob = bucket.blob(object_name)
     blob.upload_from_filename(str(local_file))
 
-
-@timed_operation("Download whole dataset")
-def web_to_gcs(year: int, service: str, overwrite: bool) -> None:
-    """Download, transform, and upload taxi data to GCS for specified year and service."""
+@timed_operation("Batch process web to GCS")
+def web_to_gcs(year: int, service: str, overwrite: bool, file_format: str = "original") -> None:
+    """
+    file_format: 'parquet' (converts to parquet) or 'original' (keeps .csv.gz)
+    """
+    existing_files = set() if overwrite else set(list_gcs_files(prefix=service))
     
-    existing_files = set () if overwrite else set(list_gcs_files(prefix=service))
     for month in range(1, 13):
         month_str = f"{month:02d}"
         csv_file_name = f"{service}_tripdata_{year}-{month_str}.csv.gz"
-        parquet_file_name = f"{service}_tripdata_{year}-{month_str}.parquet"
-
+        
+        # Determine target file name and path
+        if file_format == "original":
+            target_file_name = csv_file_name
+        else:
+            target_file_name = f"{service}_tripdata_{year}-{month_str}.parquet"
 
         csv_path = TEMP_DIR / csv_file_name
-        parquet_path = TEMP_DIR / parquet_file_name
-        gcs_object_name = f"{service}/{parquet_file_name}"
+        target_path = TEMP_DIR / target_file_name
+        gcs_object_name = f"{service}/{target_file_name}"
         
-        # checking if file exists in bucket to not overwrite
         if gcs_object_name in existing_files:
-            logger.info(f"Skipping {gcs_object_name}: Already exists in GCS.")
+            logger.info(f"Skipping {gcs_object_name}: Already exists.")
             continue
 
         request_url = f"{INIT_URL}{service}/{csv_file_name}"
@@ -106,27 +94,31 @@ def web_to_gcs(year: int, service: str, overwrite: bool) -> None:
             # Step 1: Download
             download_file(request_url, csv_path)
             
-            # Step 2: Transform to Parquet
-            transform_to_parquet(csv_path, parquet_path)
+            # Step 2: Handle Transformation
+            if file_format == "parquet":
+                transform_to_parquet(csv_path, target_path)
+                # Cleanup the raw CSV if we converted it
+                csv_path.unlink()
+            else:
+                # If 'original', target_path is just the csv_path
+                target_path = csv_path
             
-            # Step 3: Upload to GCS
-            upload_to_gcs(parquet_path, BUCKET, gcs_object_name)
+            # Step 3: Upload
+            upload_to_gcs(target_path, BUCKET, gcs_object_name)
             
-            # Cleanup
-            csv_path.unlink()
-            parquet_path.unlink()
-            
-            logger.info(f"Processed: {service}/{parquet_file_name}\n")
+            # Final Cleanup
+            target_path.unlink()
+            logger.info(f"Successfully uploaded: {gcs_object_name}")
             
         except Exception as e:
             logger.error(f"Error processing {csv_file_name}: {e}")
-            # Cleanup on error
             csv_path.unlink(missing_ok=True)
-            parquet_path.unlink(missing_ok=True)
-
+            if file_format == "parquet":
+                target_path.unlink(missing_ok=True)
 
 if __name__ == "__main__":
-    web_to_gcs(2019, "green", overwrite=False)
-    web_to_gcs(2020, "green", overwrite=False)
-    web_to_gcs(2019, "yellow", overwrite=False)
-    web_to_gcs(2020, "yellow", overwrite=False)
+    # web_to_gcs(2019, "green", overwrite=True, file_format="original")
+    # web_to_gcs(2020, "green", overwrite=True, file_format="original")
+    # web_to_gcs(2019, "yellow", overwrite=True, file_format="original")
+    # web_to_gcs(2020, "yellow", overwrite=True, file_format="original")
+    web_to_gcs(2019, "fhv", overwrite=True, file_format="original")

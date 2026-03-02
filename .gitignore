@@ -262,3 +262,5 @@ logs/queries
 
 
 *.db
+*.duckdb
+logs/

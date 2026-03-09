@@ -8,3 +8,4 @@
 ### [Module 4 homework](./04-analytics-engineering/homework/README.md)
 ### [Module 5 homework](./05-data-platforms/homework/README.md)
 ### [Workshop 1: dlt homework](./dlt-workshop/homework/README.md)
+### [Module 6 homework](./06-batch/homework/README.md)
